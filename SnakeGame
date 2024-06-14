@@ -1,0 +1,118 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Random;
+import javax.swing.*;
+
+public class SnakeGame extends JPanel implements ActionListener, KeyListener {
+    private class Tile {
+        int x, y;
+        Tile(int x, int y) { this.x = x; this.y = y; }
+    }
+
+    private int boardWidth, boardHeight, tileSize = 25;
+    private Tile snakeHead;
+    private ArrayList<Tile> snakeBody;
+    private Tile food;
+    private Random random;
+    private int velocityX, velocityY;
+    private Timer gameLoop;
+    private boolean gameOver = false;
+
+    SnakeGame(int boardWidth, int boardHeight) {
+        this.boardWidth = boardWidth;
+        this.boardHeight = boardHeight;
+        setPreferredSize(new Dimension(boardWidth, boardHeight));
+        setBackground(Color.black);
+        setFocusable(true);
+        addKeyListener(this);
+   
+        snakeHead = new Tile(5, 5);
+        snakeBody = new ArrayList<>();
+        random = new Random();
+        placeFood();
+
+        velocityX = 1;
+        velocityY = 0;
+
+        gameLoop = new Timer(100, this);
+        gameLoop.start();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        g.setColor(Color.gray);
+        for (int i = 0; i < boardWidth / tileSize; i++) {
+            g.drawLine(i * tileSize, 0, i * tileSize, boardHeight);
+            g.drawLine(0, i * tileSize, boardWidth, i * tileSize);
+        }
+        g.setColor(Color.red);
+        g.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
+        g.setColor(Color.green);
+        g.fillRect(snakeHead.x * tileSize, snakeHead.y * tileSize, tileSize, tileSize);
+        for (Tile part : snakeBody) {
+            g.fillRect(part.x * tileSize, part.y * tileSize, tileSize, tileSize);
+        }
+        g.setColor(Color.white);
+        g.drawString("Score: " + snakeBody.size(), 10, 20);
+        if (gameOver) {
+            g.drawString("Game Over", boardWidth / 2 - 30, boardHeight / 2);
+        }
+    }
+
+    private void placeFood() {
+        food = new Tile(random.nextInt(boardWidth / tileSize), random.nextInt(boardHeight / tileSize));
+    }
+
+    private void move() {
+        if (gameOver) return;
+        if (collision(snakeHead, food)) {
+            snakeBody.add(new Tile(food.x, food.y));
+            placeFood();
+        }
+        for (int i = snakeBody.size() - 1; i > 0; i--) {
+            snakeBody.set(i, new Tile(snakeBody.get(i - 1).x, snakeBody.get(i - 1).y));
+        }
+        if (!snakeBody.isEmpty()) {
+            snakeBody.set(0, new Tile(snakeHead.x, snakeHead.y));
+        }
+        snakeHead.x += velocityX;
+        snakeHead.y += velocityY;
+        for (Tile part : snakeBody) {
+            if (collision(snakeHead, part)) {
+                gameOver = true;
+            }
+        }
+        if (snakeHead.x < 0 || snakeHead.x >= boardWidth / tileSize || snakeHead.y < 0 || snakeHead.y >= boardHeight / tileSize) {
+            gameOver = true;
+        }
+    }
+
+    private boolean collision(Tile t1, Tile t2) {
+        return t1.x == t2.x && t1.y == t2.y;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (!gameOver) {
+            move();
+            repaint();
+        }
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_UP: if (velocityY != 1) { velocityX = 0; velocityY = -1; } break;
+            case KeyEvent.VK_DOWN: if (velocityY != -1) { velocityX = 0; velocityY = 1; } break;
+            case KeyEvent.VK_LEFT: if (velocityX != 1) { velocityX = -1; velocityY = 0; } break;
+            case KeyEvent.VK_RIGHT: if (velocityX != -1) { velocityX = 1; velocityY = 0; } break;
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {}
+    @Override
+    public void keyReleased(KeyEvent e) {}
+}
